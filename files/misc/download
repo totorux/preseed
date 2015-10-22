@@ -16,24 +16,56 @@ set -e
 #    For a full copy of the GNU General Public License,
 #    see <http://www.gnu.org/licenses/>.
 
-echo Temporary Directory files/download
-mkdir -v files/download
-
-echo Downloading mini.iso for amd64
-wget -O files/download/mini.iso -q http://ftp.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/mini.iso
-
-SUM=a55859a54c422e1cb2ee91fbb0a65aa7fc699b60
-if [ "`sha1sum files/download/mini.iso | cut -f1 -d' '`" == "$SUM" ]; then
-	echo Verified sha1sum $SUM
-else
-	echo Incorrect sha1sum
-	exit 1
+echo "Temporary Directory files/download"
+if [ ! -d files/download ]; then
+	mkdir -v files/download
 fi
 
-echo Loop-mounting files/download/mini.iso on files/download/temp
-echo sudo mount -o loop files/download/mini.iso files/download/temp
+
+if [ -d files/download/temp ]; then
+	echo "Removing files/download/temp"
+	rm -Rf files/download/temp
+fi
+
+if [ ! -f files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso ] || [ "$ISOUPDATE" == "update" ]; then
+	echo "Downloading mini.iso for $LINUXDISTRO $DISTROVERSION arch $LINUXARCH"
+	case $LINUXDISTRO in 
+		"debian")
+			wget -O files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso http://ftp.debian.org/debian/dists/$DISTROVERSION/main/installer-$LINUXARCH/current/images/netboot/mini.iso
+			wget  -O files/download/MD5SUMS http://ftp.debian.org/debian/dists/$DISTROVERSION/main/installer-$LINUXARCH/current/images/MD5SUMS
+                        SUM=`cat files/download/MD5SUMS | grep /netboot/mini.iso | sed 's/  .\/netboot.*$//'`
+                        if [ "`md5sum files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso | cut -f1 -d' '`" == "$SUM" ]; then
+                                echo Verified md5sum $SUM
+                                rm files/download/MD5SUMS
+                        else
+                                echo Incorrect md5sum
+				rm files/download/MD5SUMS
+                                exit 1
+                        fi
+		;;
+		"ubuntu")
+			wget -O files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso http://archive.ubuntu.com/ubuntu/dists/$DISTROVERSION/main/installer-$LINUXARCH/current/images/netboot/mini.iso
+			wget -O files/download/SHA1SUMS http://archive.ubuntu.com/ubuntu/dists/$DISTROVERSION/main/installer-$LINUXARCH/current/images/SHA1SUMS
+			SUM=`cat files/download/SHA1SUMS | grep /netboot/mini.iso | sed 's/  .\/netboot.*$//'`
+			if [ "`sha1sum files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso | cut -f1 -d' '`" == "$SUM" ]; then
+			        echo Verified sha1sum $SUM
+				rm files/download/SHA1SUMS
+			else
+				echo Incorrect sha1sum
+				rm files/download/SHA1SUMS
+				exit 1
+			fi
+		;;
+		*)
+			echo "Unknow dritrib !"
+		;;
+	esac
+fi
+
+echo Loop-mounting files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso on files/download/temp
+echo sudo mount -o loop files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso files/download/temp
 mkdir -v files/download/temp
-sudo mount -o loop files/download/mini.iso files/download/temp
+sudo mount -o loop files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso files/download/temp
 
 mkdir -p files/orig
 
@@ -41,9 +73,6 @@ echo Copying isolinux.bin, initrd.gz and linux to ./files/orig
 cp -v files/download/temp/{isolinux.bin,initrd.gz,linux} files/orig/
 chmod u+w files/orig/{isolinux.bin,initrd.gz,linux}
 
-echo Unmounting files/download/mini.iso
+echo Unmounting files/download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso
 echo sudo umount files/download/temp
 sudo umount files/download/temp
-
-echo Removing files/download
-rm -Rf files/download

@@ -16,16 +16,63 @@ set -e
 #    For a full copy of the GNU General Public License, 
 #    see <http://www.gnu.org/licenses/>.
 
+# Fonction
+
+function usage()
+{
+	echo "Usage $0 <preseed> <Linux distrib> <Distrib version> <Arch> <Update>"
+	echo "Where <preseed> is one of the items in:"
+	ls files/preseeds/
+	echo "<Linux distrib> is one of the items: debian or ubuntu, <Distrib version> is one of the items: stable, saucy ..., <Arch> is one of the items: i386 amd64, <Update> is needed if you want to download the new version of the mini.iso put: update"
+	echo "You can add custom preseed by making a new folder in files/preseeds/ and puttiong you own preseed called 'preseed.cfg' without network configuration who is in files/settings/network.cfg"
+	exit 1
+}
+
+# Script
+
 IFS_O=$IFS
 IFS=$(echo -en '\0')
-cd `dirname $0`
 IFS=$IFS_O
+ISOUPDATE=`echo $5 | tr ‘[A-Z]‘ ‘[a-z]‘`
+LINUXDISTRO=`echo $2 | tr ‘[A-Z]‘ ‘[a-z]‘`
+DISTROVERSION=`echo $3 | tr ‘[A-Z]‘ ‘[a-z]‘`
+LINUXARCH=`echo $4 | tr ‘[A-Z]‘ ‘[a-z]‘`
+
+cd `dirname $0`
 
 if [ "x$1" == "x" ]; then
-	echo "Usage $0 <preseed>"
-	echo "Where <preseed> is one of the items in files/preseeds/"
-	exit 1
+	usage
 fi
+
+case $LINUXDISTRO in 
+	"debian")
+		echo "Linux distrib is: $LINUXDISTRO"
+	;;
+	"ubuntu")
+		echo "Linux distrib is: $LINUXDISTRO"
+	;;
+	*)
+		usage
+	;;
+	
+esac
+
+if [ "x$3" == "x" ]; then
+	usage
+fi
+
+case $LINUXARCH in 
+	"amd64")
+		echo "Linux arch is: $LINUXARCH"
+	;;
+	"i386")
+		echo "Linux arch is: $LINUXARCH"
+	;;
+	*)
+		usage
+	;;
+	
+esac
 
 if [ ! -d files ]; then
 	echo "Unable to find ./files"
@@ -33,19 +80,26 @@ if [ ! -d files ]; then
 fi
 
 if [ ! -d files/preseeds/$1 ]; then
-	echo "Usage $0 <preseed>"
-	echo "Where <preseed> is one of the items in files/preseeds/"
-	exit 1
-fi
+		usage
+	fi
 
-if [ ! -d files/orig ]; then
+if [ ! -f download/mini-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso ] || [ "$ISOUPDATE" == "update" ]; then
 	echo "Running ./files/misc/download"
+	export LINUXDISTRO=`echo $2 | tr ‘[A-Z]‘ ‘[a-z]‘`
+	export DISTROVERSION=`echo $3 | tr ‘[A-Z]‘ ‘[a-z]‘`
+	export LINUXARCH=`echo $4 | tr ‘[A-Z]‘ ‘[a-z]‘`
+	export ISOUPDATE=`echo $5 | tr ‘[A-Z]‘ ‘[a-z]‘`
 	./files/misc/download
 fi
 
 echo "Creating temporary (files/add) and output (files/output/$1) dirs"
-mkdir -v files/add
-mkdir -pv files/output/$1
+if [ ! -d files/add ]; then
+	mkdir -v files/add
+fi
+
+if [ ! -d files/output/$1 ]; then
+	mkdir -pv files/output/$1
+fi
 
 if [ -f files/preseeds/$1/build ]; then
 	echo "Running files/preseeds/$1/build"
@@ -64,7 +118,6 @@ if [ -f files/preseeds/$1/extra ]; then
 
 	./files/preseeds/$1/extra
 fi
-
 echo Copying isolinux.bin, initrd.gz and linux from ./files/orig to output dir
 cp -v files/orig/{isolinux.bin,initrd.gz,linux} files/output/$1
 
@@ -93,14 +146,21 @@ gzip files/output/$1/initrd
 echo Adding isolinux.cfg
 cp files/misc/isolinux.cfg files/output/$1
 
+if [ ! -d files/output/iso ]; then
+	mkdir files/output/iso
+fi
+
 echo Creating preseed.iso
 (cd files/output/$1
  rm -f preseed.iso
  genisoimage -quiet -r -V "preseed" -cache-inodes -J -l -b isolinux.bin -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ../preseed.iso .)
-mv files/output/preseed.iso files/output/$1
+mv files/output/preseed.iso files/output/iso/$1-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso
 
-echo Removing files/add
+echo "Cleanning temporary files"
 rm -Rf files/add
+#rm -rf files/orig
+#rm -rf files/output/$1
 
-echo Listing files/output/$1
-ls --color=auto -lh files/output/$1
+echo Listing files/output/iso
+ls --color=auto -lh files/output/iso/
+echo "You will found you iso with your preseed in files/output/iso/$1-$LINUXDISTRO-$DISTROVERSION-$LINUXARCH.iso !"

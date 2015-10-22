@@ -1,7 +1,7 @@
-# Ubuntu Minimal CD Preseeding
+# Ubuntu/Debian Minimal CD Preseeding
 
 The scripts in this repo automate the process of embedding preseed files into
-a initrd.gz of a ubuntu [mini.iso][ubuntu-minimalcd], along with the ability
+a initrd.gz of a ubuntu/debian [mini.iso][ubuntu-minimalcd], along with the ability
 to add things like your ssh public key so that login is automatic as well.
 
 The `remaster` script does the majority of the work, with directories in 
@@ -44,8 +44,10 @@ unpacks it. It will require sudo access to do this.
 Edit files/settings/*, then:
 
 <pre>
-Usage ./remaster &lt;preseed&gt;
-Where &lt;preseed&gt; is one of the items in files/preseeds/
+Usage ./remaster <preseed> <Linux distrib> <Distrib version> <Arch> <Update>
+Where <preseed> is one of the items in files/preseeds/, <Linux distrib> is one of the items: debian or ubuntu, <Distrib version> is one of the items: stable, saucy ...(depend of the debian/ubuntu version you want to use), <Arch> is one of the items: i386 amd64, <Update> is needed if you want to download the new version of the mini.iso put: update
+You can add custom preseed by making a new folder in files/preseeds/ and puttiong you own preseed called 'preseed.cfg' without network configuration who is in files/settings/network.cfg
+If no iso files is found in files/download/ (with a name like: mini-ubuntu-saucy-amd64.iso) it will be downloaded, else the script will use the founded file.
 </pre>
 
 I apologise for the lack of documentation.

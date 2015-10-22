@@ -12,6 +12,10 @@ KEYS="rsa dsa rsa1"
 AKEYS=`echo ~/.ssh/id_{d,r}sa.pub files/settings/id_{d,r}sa.pub`
 FPFILE=$OUT/fingerprints
 
+if [ ! -d $OUT ]; then
+	mkdir -v $OUT
+fi
+
 echo "Creating directories in $ADD"
 mkdir -pv $KEYDIR $AKEYDIR
 
