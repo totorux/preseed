@@ -38,6 +38,21 @@ LINUXDISTRO=`echo $2 | tr ‘[A-Z]‘ ‘[a-z]‘`
 DISTROVERSION=`echo $3 | tr ‘[A-Z]‘ ‘[a-z]‘`
 LINUXARCH=`echo $4 | tr ‘[A-Z]‘ ‘[a-z]‘`
 
+if [ ! -d files/download ]
+then
+	mkdir files/download
+fi
+
+if [ ! -d files/orig]
+then
+	mkdir files/orig
+fi
+
+if [ ! -d files/output ]
+then
+	mkdir files/output
+fi
+
 cd `dirname $0`
 
 if [ "x$1" == "x" ]; then
